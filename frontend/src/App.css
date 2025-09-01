@@ -1,0 +1,100 @@
+/* Additional custom styles for Library Management App */
+
+/* Enhanced focus states for better accessibility */
+.form-input:focus,
+select:focus,
+textarea:focus {
+  @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+/* Enhanced button interactions */
+.btn-primary:active,
+.btn-secondary:active,
+.btn-danger:active {
+  @apply transform scale-95;
+}
+
+/* Table enhancements */
+.table-row:hover {
+  @apply bg-blue-50/50;
+}
+
+/* Loading states */
+.loading-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+/* Empty state styling */
+.empty-state {
+  @apply text-center py-12 px-6;
+}
+
+.empty-state-icon {
+  @apply mx-auto h-12 w-12 text-gray-400 mb-4;
+}
+
+.empty-state-text {
+  @apply text-sm text-gray-500;
+}
+
+/* Success/Error message styling */
+.message {
+  @apply p-4 rounded-lg border mb-4;
+}
+
+.message-success {
+  @apply bg-green-50 border-green-200 text-green-800;
+}
+
+.message-error {
+  @apply bg-red-50 border-red-200 text-red-800;
+}
+
+.message-warning {
+  @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+}
+
+.message-info {
+  @apply bg-blue-50 border-blue-200 text-blue-800;
+}
+
+/* Responsive grid improvements */
+.grid-responsive {
+  @apply grid grid-cols-1 gap-4;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    @apply grid-cols-2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    @apply grid-cols-3;
+  }
+}
+
+/* Enhanced shadows and depth */
+.shadow-elevated {
+  @apply shadow-lg shadow-gray-900/10;
+}
+
+.shadow-subtle {
+  @apply shadow-sm shadow-gray-900/5;
+}
+
+/* Smooth transitions for all interactive elements */
+.interactive {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Focus ring utilities */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+/* Hover effects */
+.hover-lift {
+  @apply hover:transform hover:-translate-y-1 hover:shadow-lg transition-all duration-200;
+}

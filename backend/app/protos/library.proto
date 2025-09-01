@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package library;
+
+// The LibraryService defines RPC methods for library operations
+service LibraryService {
+  rpc CreateBook (Book) returns (BookId);
+  rpc UpdateBook (Book) returns (Book);
+  rpc GetBook (BookId) returns (Book);
+
+  rpc CreateMember (Member) returns (MemberId);
+  rpc UpdateMember (Member) returns (Member);
+  rpc GetMember (MemberId) returns (Member);
+
+  rpc BorrowBook (BorrowRequest) returns (Borrowing);
+  rpc ReturnBook (ReturnRequest) returns (Borrowing);
+
+  rpc ListBooks (Empty) returns (BookList);
+  rpc ListMembers (Empty) returns (MemberList);
+  rpc GetMemberBorrowings (MemberId) returns (BorrowingList);
+}
+
+// Book message representing a book record
+message Book {
+  int32 id = 1;
+  string title = 2;
+  string author = 3;
+  string isbn = 4;
+}
+
+// Member message representing a library member
+message Member {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+  string phone = 4;
+}
+
+// Basic ID messages
+message BookId {
+  int32 id = 1;
+}
+message MemberId {
+  int32 id = 1;
+}
+
+// Request to borrow a book
+message BorrowRequest {
+  int32 member_id = 1;
+  int32 book_id = 2;
+}
+
+// Request to return a borrowed book
+message ReturnRequest {
+  int32 book_id = 1;
+  int32 member_id = 2;
+}
+
+// Borrowing record showing who borrowed which book and when
+message Borrowing {
+  int32 id = 1;
+  int32 member_id = 2;
+  int32 book_id = 3;
+  string borrow_date = 4;
+  string return_date = 5;
+}
+
+// List of books
+message BookList {
+  repeated Book books = 1;
+}
+
+// List of members
+message MemberList {
+  repeated Member members = 1;
+}
+
+// List of borrowings
+message BorrowingList {
+  repeated Borrowing borrowings = 1;
+}
+
+// Empty message for requests that don't need parameters
+message Empty {}

@@ -1,0 +1,8 @@
+grpcio>=1.59.0
+grpcio-tools>=1.59.0
+sqlalchemy>=2.0.0
+protobuf>=4.25.0
+psycopg[binary]>=3.1
+python-dotenv>=1.0.1
+flask>=2.3.0
+flask-cors>=4.0.0 
