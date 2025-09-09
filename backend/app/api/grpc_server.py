@@ -3,9 +3,6 @@ gRPC server implementation for the Library Service.
 """
 
 import grpc
-import datetime
-from concurrent import futures
-from typing import List
 
 # Import generated protobuf files
 from .library_pb2 import (
@@ -18,7 +15,10 @@ from .library_pb2_grpc import LibraryServiceServicer, add_LibraryServiceServicer
 from ..services.book_service import BookService
 from ..services.member_service import MemberService
 from ..services.borrowing_service import BorrowingService
-from ..infrastructure.database import get_session
+from ..utils.logger import LoggerConfig
+from ..exceptions.base import LibraryServiceError
+from ..exceptions.grpc_mapping import GRPCStatusMapper
+from ..exceptions.error_handler import error_handler
 
 
 class LibraryServiceServicer(LibraryServiceServicer):
@@ -29,19 +29,33 @@ class LibraryServiceServicer(LibraryServiceServicer):
         self.book_service = BookService()
         self.member_service = MemberService()
         self.borrowing_service = BorrowingService()
+        self.logger = LoggerConfig.get_logger("api.grpc_server")
     
     def CreateBook(self, request, context):
         """Create a new book."""
+        self.logger.info(f"gRPC CreateBook request: title='{request.title}', author='{request.author}', isbn='{request.isbn}'")
         try:
             book = self.book_service.create_book(
                 title=request.title,
                 author=request.author,
                 isbn=request.isbn if request.isbn else None
             )
+            self.logger.info(f"gRPC CreateBook success: book_id={book.id}")
             return BookId(id=book.id)
+        except LibraryServiceError as e:
+            grpc_status, details = GRPCStatusMapper.map_exception_to_grpc_status(e)
+            context.set_code(grpc_status)
+            context.set_details(details)
+            return BookId()
         except Exception as e:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Failed to create book: {str(e)}")
+            error_handler.handle_grpc_exception(
+                e,
+                context={"title": request.title, "author": request.author, "isbn": request.isbn},
+                operation="CreateBook"
+            )
+            grpc_status, details = GRPCStatusMapper.map_generic_exception_to_grpc_status(e)
+            context.set_code(grpc_status)
+            context.set_details(details)
             return BookId()
     
     def UpdateBook(self, request, context):
@@ -150,11 +164,13 @@ class LibraryServiceServicer(LibraryServiceServicer):
     
     def BorrowBook(self, request, context):
         """Borrow a book."""
+        self.logger.info(f"gRPC BorrowBook request: book_id={request.book_id}, member_id={request.member_id}")
         try:
             borrowing = self.borrowing_service.borrow_book(
                 book_id=request.book_id,
                 member_id=request.member_id
             )
+            self.logger.info(f"gRPC BorrowBook success: borrowing_id={borrowing.id}")
             return Borrowing(
                 id=borrowing.id,
                 book_id=borrowing.book_id,
@@ -162,13 +178,20 @@ class LibraryServiceServicer(LibraryServiceServicer):
                 borrow_date=borrowing.borrow_date.isoformat() if borrowing.borrow_date else "",
                 return_date=borrowing.return_date.isoformat() if borrowing.return_date else ""
             )
-        except ValueError as e:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details(str(e))
+        except LibraryServiceError as e:
+            grpc_status, details = GRPCStatusMapper.map_exception_to_grpc_status(e)
+            context.set_code(grpc_status)
+            context.set_details(details)
             return Borrowing()
         except Exception as e:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Failed to borrow book: {str(e)}")
+            error_handler.handle_grpc_exception(
+                e,
+                context={"book_id": request.book_id, "member_id": request.member_id},
+                operation="BorrowBook"
+            )
+            grpc_status, details = GRPCStatusMapper.map_generic_exception_to_grpc_status(e)
+            context.set_code(grpc_status)
+            context.set_details(details)
             return Borrowing()
     
     def ReturnBook(self, request, context):

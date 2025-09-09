@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
 """
-Simple Library Service - Starts PostgreSQL and runs the service.
+Library Service - Main entry point with PostgreSQL setup and gRPC server.
 """
 
 import os
 import sys
 import subprocess
 import time
-import signal
-from pathlib import Path
 
 # Add app to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
 
+# Import logging after path setup
+from app.utils.logger import LoggerConfig, log_exception
+from dotenv import load_dotenv
+
 def start_postgres():
     """Start PostgreSQL container."""
-    print("🐘 Starting PostgreSQL container...")
+    logger = LoggerConfig.get_logger("main.postgres")
+    logger.info("Starting PostgreSQL container...")
     
     # Check if container already exists
     result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=library_postgres'], 
                           capture_output=True, text=True)
     
     if result.stdout.strip():
-        print("✅ PostgreSQL container already running")
+        logger.info("PostgreSQL container already running")
         return True
     
     # Start new container
@@ -38,15 +41,16 @@ def start_postgres():
             'postgres:15'
         ], check=True)
         
-        print("✅ PostgreSQL container started")
+        logger.info("PostgreSQL container started successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to start PostgreSQL: {e}")
+        log_exception(logger, "Failed to start PostgreSQL container", e)
         return False
 
 def wait_for_postgres():
     """Wait for PostgreSQL to be ready."""
-    print("⏳ Waiting for PostgreSQL to be ready...")
+    logger = LoggerConfig.get_logger("main.postgres")
+    logger.info("Waiting for PostgreSQL to be ready...")
     
     for i in range(30):  # Wait up to 30 seconds
         try:
@@ -56,44 +60,47 @@ def wait_for_postgres():
             ], capture_output=True, text=True)
             
             if result.returncode == 0:
-                print("✅ PostgreSQL is ready")
+                logger.info("PostgreSQL is ready")
                 return True
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"PostgreSQL not ready yet (attempt {i+1}/30): {e}")
         
         time.sleep(1)
     
-    print("❌ PostgreSQL failed to start")
+    logger.error("PostgreSQL failed to start within timeout period")
     return False
 
 def main():
     """Main function."""
-    print("🚀 Starting Library Service...")
-    print("=" * 50)
+    # Initialize logging first
+    logger = LoggerConfig.setup_logging()
+    logger.info("Starting Library Service...")
+    logger.info("=" * 50)
     
     # Load environment variables
-    from dotenv import load_dotenv
     load_dotenv()
     
     # Start PostgreSQL
     if not start_postgres():
+        logger.error("Failed to start PostgreSQL, exiting")
         sys.exit(1)
     
     # Wait for PostgreSQL
     if not wait_for_postgres():
+        logger.error("PostgreSQL not ready, exiting")
         sys.exit(1)
     
     # Start the library service
-    print("📚 Starting Library Service...")
-    print("=" * 50)
+    logger.info("Starting Library Service application...")
+    logger.info("=" * 50)
     
     try:
         from app.main import main as app_main
         app_main()
     except KeyboardInterrupt:
-        print("\n🛑 Shutting down...")
+        logger.info("Shutting down due to keyboard interrupt...")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        log_exception(logger, "Fatal error in main application", e)
         sys.exit(1)
 
 if __name__ == "__main__":

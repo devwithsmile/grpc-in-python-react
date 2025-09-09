@@ -16,6 +16,7 @@ load_dotenv()
 from .api.library_pb2_grpc import add_LibraryServiceServicer_to_server
 from .api.grpc_server import LibraryServiceServicer
 from .infrastructure.database import create_tables
+from .utils.logger import LoggerConfig, log_exception
 
 class LibraryServiceApp:
     """Main application class."""
@@ -25,40 +26,49 @@ class LibraryServiceApp:
         self.server = None
         self.port = int(os.getenv("SERVER_PORT", "50051"))
         self.max_workers = int(os.getenv("SERVER_MAX_WORKERS", "10"))
+        self.logger = LoggerConfig.get_logger("app.main")
     
     def start(self):
         """Start the gRPC server."""
-        print(f"🚀 Starting Library Service on port {self.port}")
+        self.logger.info(f"Starting Library Service on port {self.port}")
         
         # Create database tables
-        print("🗄️  Setting up database...")
-        create_tables()
-        print("✅ Database ready")
+        self.logger.info("Setting up database...")
+        try:
+            create_tables()
+            self.logger.info("Database ready")
+        except Exception as e:
+            log_exception(self.logger, "Failed to create database tables", e)
+            raise
         
         # Start gRPC server
-        self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=self.max_workers))
-        add_LibraryServiceServicer_to_server(LibraryServiceServicer(), self.server)
-        
-        # Listen on port
-        listen_addr = f"[::]:{self.port}"
-        self.server.add_insecure_port(listen_addr)
-        
-        # Start server
-        self.server.start()
-        print(f"✅ gRPC server listening on port {self.port}")
-        print("=" * 50)
-        print("🎯 Service is ready! Use any gRPC client to connect.")
-        print("=" * 50)
-        
-        # Wait for shutdown
-        self.server.wait_for_termination()
+        try:
+            self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=self.max_workers))
+            add_LibraryServiceServicer_to_server(LibraryServiceServicer(), self.server)
+            
+            # Listen on port
+            listen_addr = f"[::]:{self.port}"
+            self.server.add_insecure_port(listen_addr)
+            
+            # Start server
+            self.server.start()
+            self.logger.info(f"gRPC server listening on port {self.port}")
+            self.logger.info("=" * 50)
+            self.logger.info("Service is ready! Use any gRPC client to connect.")
+            self.logger.info("=" * 50)
+            
+            # Wait for shutdown
+            self.server.wait_for_termination()
+        except Exception as e:
+            log_exception(self.logger, "Failed to start gRPC server", e)
+            raise
     
     def stop(self):
         """Stop the server gracefully."""
         if self.server:
-            print("\n🛑 Shutting down server...")
+            self.logger.info("Shutting down server...")
             self.server.stop(0)
-            print("✅ Server stopped")
+            self.logger.info("Server stopped")
 
 def main():
     """Main entry point."""
@@ -66,7 +76,7 @@ def main():
     
     # Handle graceful shutdown
     def signal_handler(signum, frame):
-        print(f"\n📡 Received signal {signum}")
+        app.logger.info(f"Received signal {signum}")
         app.stop()
         sys.exit(0)
     
@@ -76,10 +86,10 @@ def main():
     try:
         app.start()
     except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user")
+        app.logger.info("Interrupted by user")
         app.stop()
     except Exception as e:
-        print(f"❌ Error: {e}")
+        log_exception(app.logger, "Fatal error in application", e)
         sys.exit(1)
 
 if __name__ == "__main__":
