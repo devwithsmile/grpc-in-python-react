@@ -34,19 +34,9 @@ def get_books():
         book_service = BookService()
         books = book_service.get_all_books()
         
-        book_list = []
-        for book in books:
-            book_list.append({
-                'id': book.id,
-                'title': book.title,
-                'author': book.author,
-                'isbn': book.isbn,
-                'created_at': book.created_at.isoformat() if book.created_at else None,
-                'updated_at': book.updated_at.isoformat() if book.updated_at else None
-            })
-        
-        logger.info(f"Successfully retrieved {len(book_list)} books")
-        return jsonify(book_list)
+        # Books are now returned as dictionaries from the service
+        logger.info(f"Successfully retrieved {len(books)} books")
+        return jsonify(books)
     except Exception as e:
         log_exception(logger, "Failed to retrieve books", e)
         return jsonify({"error": str(e)}), 500
@@ -207,18 +197,8 @@ def get_members():
         member_service = MemberService()
         members = member_service.get_all_members()
         
-        member_list = []
-        for member in members:
-            member_list.append({
-                'id': member.id,
-                'name': member.name,
-                'email': member.email,
-                'phone': member.phone,
-                'created_at': member.created_at.isoformat() if member.created_at else None,
-                'updated_at': member.updated_at.isoformat() if member.updated_at else None
-            })
-        
-        return jsonify(member_list)
+        # Members are now returned as dictionaries from the service
+        return jsonify(members)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -339,18 +319,12 @@ def get_borrowings():
         borrowing_service = BorrowingService()
         borrowings = borrowing_service.get_active_borrowings()
         
-        borrowing_list = []
+        # Borrowings are now returned as dictionaries from the service
+        # Add computed field for is_returned
         for borrowing in borrowings:
-            borrowing_list.append({
-                'id': borrowing.id,
-                'book_id': borrowing.book_id,
-                'member_id': borrowing.member_id,
-                'borrow_date': borrowing.borrow_date.isoformat() if borrowing.borrow_date else None,
-                'return_date': borrowing.return_date.isoformat() if borrowing.return_date else None,
-                'is_returned': borrowing.return_date is not None
-            })
+            borrowing['is_returned'] = borrowing.get('return_date') is not None
         
-        return jsonify(borrowing_list)
+        return jsonify(borrowings)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

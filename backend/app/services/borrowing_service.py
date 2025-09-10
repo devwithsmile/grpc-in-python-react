@@ -12,12 +12,14 @@ from ..utils.logger import LoggerConfig, log_exception, log_function_call, log_f
 from ..schemas.borrowing_schemas import BorrowingCreateSchema, BorrowingReturnSchema
 from ..services.validation_service import validation_service
 from ..utils.validators import ValidationError
+from .base_service import BaseService
 
-class BorrowingService:
+class BorrowingService(BaseService):
     """Service for borrowing operations."""
     
     def __init__(self):
         """Initialize the service with logger."""
+        super().__init__("borrowing")
         self.logger = LoggerConfig.get_logger("services.borrowing")
     
     def borrow_book(self, book_id: int, member_id: int) -> Borrowing:
@@ -148,17 +150,8 @@ class BorrowingService:
     
     def get_active_borrowings(self):
         """Get all active (unreturned) borrowings."""
-        log_function_call(self.logger, "get_active_borrowings")
-        session = get_session()
-        try:
-            borrowings = session.query(Borrowing).filter(Borrowing.return_date.is_(None)).all()
-            log_function_result(self.logger, "get_active_borrowings", result=f"Retrieved {len(borrowings)} active borrowings")
-            return borrowings
-        except Exception as e:
-            log_exception(self.logger, "Failed to get active borrowings", e)
-            raise
-        finally:
-            close_session(session)
+        from app.models.borrowing import Borrowing
+        return self._get_all(Borrowing, "get_active_borrowings", filter_condition=Borrowing.return_date.is_(None))
     
     def get_borrowing(self, borrowing_id: int) -> Borrowing:
         """Get a borrowing by ID."""

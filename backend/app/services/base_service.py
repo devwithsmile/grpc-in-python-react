@@ -117,16 +117,33 @@ class BaseService:
         self, 
         model_class: Type[T], 
         operation: str,
-        context: Optional[Dict[str, Any]] = None
-    ) -> list[T]:
+        context: Optional[Dict[str, Any]] = None,
+        filter_condition = None
+    ) -> list[Dict[str, Any]]:
         """Get all records with error handling."""
         self._log_function_call(operation)
         
         try:
             with get_db_session() as session:
-                records = session.query(model_class).all()
+                query = session.query(model_class)
+                if filter_condition is not None:
+                    query = query.filter(filter_condition)
+                records = query.all()
                 self._log_function_result(operation, f"Found {len(records)} {model_class.__name__} records")
-                return records
+                
+                # Convert SQLAlchemy objects to dictionaries to avoid DetachedInstanceError
+                result = []
+                for record in records:
+                    record_dict = {}
+                    for column in record.__table__.columns:
+                        value = getattr(record, column.name)
+                        if hasattr(value, 'isoformat'):  # Handle datetime objects
+                            record_dict[column.name] = value.isoformat()
+                        else:
+                            record_dict[column.name] = value
+                    result.append(record_dict)
+                
+                return result
         except DatabaseError as e:
             self._handle_database_error(e, operation, context)
         except Exception as e:

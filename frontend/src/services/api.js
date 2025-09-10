@@ -6,7 +6,7 @@ class ApiService {
     this.baseURL = BACKEND_URL;
   }
 
-  // Generic HTTP request method
+  // Generic HTTP request method with enhanced error handling
   async request(endpoint, options = {}) {
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -18,11 +18,40 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorDetails = null;
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          errorDetails = errorData;
+        } catch (parseError) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.details = errorDetails;
+        throw error;
       }
 
       return await response.json();
     } catch (error) {
+      // Network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        const networkError = new Error('Network error: Unable to connect to server');
+        networkError.type = 'network';
+        throw networkError;
+      }
+
+      // HTTP errors
+      if (error.status) {
+        error.type = 'http';
+        throw error;
+      }
+
+      // Other errors
       console.error('API request failed:', error);
       throw error;
     }

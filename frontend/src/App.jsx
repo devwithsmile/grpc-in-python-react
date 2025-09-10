@@ -4,10 +4,13 @@ import Navigation from './components/Navigation';
 import Books from './components/Books';
 import Members from './components/Members';
 import Borrowings from './components/Borrowings';
+import { ToastContainer } from './components/common';
+import { useToast } from './hooks/useToast';
 import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('books');
+  const { toasts, removeToast } = useToast();
 
   const renderActiveTab = () => {
     switch (activeTab) {
@@ -31,6 +34,7 @@ function App() {
           {renderActiveTab()}
         </div>
       </main>
+      <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
     </div>
   );
 }
